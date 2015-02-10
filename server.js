@@ -16,18 +16,14 @@ app.use(function*(next) {
   this.redirect('/404.html');
 });
 
-app.use(serve(path.resolve(__dirname, '/assets')));
+app.use(serve(path.resolve(__dirname, 'assets')));
 
-
-app.use(function*() {
-  this.body = 'Hello World';
-});
 
 // error handler
 app.on('error', function(err) {
   if (process.env.NODE_ENV != 'test') {
     console.log('sent error %s to the cloud', err.message);
-    console.trace err.stack
+    console.trace(err.stack);
   }
 });
 
