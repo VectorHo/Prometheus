@@ -6,6 +6,7 @@ var parse = require('co-body');
 var route = require('koa-route');
 var kue = require('kue');
 var path = require('path');
+var config = require('./lib/config.js');// 全局配置
 
 // #### 捕捉全局异常 ####
 process.on('uncaughtException', function(err) {
@@ -14,18 +15,12 @@ process.on('uncaughtException', function(err) {
 });
 
 // #### 注册任务队列处理机制 #####
-var jobs = kue.createQueue({
-  redis: {
-    port: 6379,
-    host: "127.0.0.1",
-    db: 3
-  }
-});
+var jobs = kue.createQueue(config.queue);
 jobs.watchStuckJobs();
 ['online-nodejs'].forEach(function(each) {
   jobs.process(each, 5, require("./lib/processor/" + each)); // parallel processing 5 jobs
 });
-if (process.env.NODE_ENV != 'production') kue.app.listen(3100);
+if (process.env.NODE_ENV != 'production') kue.app.listen(config.kue.port);
 
 
 // ### create koa ###
@@ -40,6 +35,8 @@ app.use(function*(next) {
   this.set('Server', 'koa');
   this.set('X-Pretty-Print', true);
 });
+// TODO auth
+
 app.use(serve(path.resolve(__dirname, 'assets')));
 
 // #### RESTFUL路由：处理业务 ####
@@ -72,6 +69,7 @@ app.on('error', function(err) {
 });
 
 if (!module.parent) {
-  app.listen(3000);
-  console.log('Prometheus Listen on port 3000');
+  app.listen(config.app.port);
+  console.log('Prometheus Listen on port %s', config.app.port);
+  console.log('kue Listen on port %s', config.kue.port);
 }
