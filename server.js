@@ -46,6 +46,9 @@ app.use(serve(path.resolve(__dirname, 'assets')));
 app.use(route.get('/', function*() {
   this.body = 'hello';
 }));
+app.use(route.get('/api/v1', function*() {
+  this.body = 'hello';
+}));
 require('./lib/router/users')(app, route);
 require('./lib/router/logs')(app, route);
 require('./lib/router/servers')(app, route);
