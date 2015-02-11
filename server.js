@@ -1,7 +1,10 @@
 var koa = require('koa');
 var logger = require('koa-logger');
+var requestId = require('koa-request-id');
 var serve = require('koa-static');
 var compress = require('koa-compress');
+var conditional = require('koa-conditional-get');
+var etag = require('koa-etag');
 var parse = require('co-body');
 var route = require('koa-route');
 var kue = require('kue');
@@ -22,13 +25,14 @@ jobs.watchStuckJobs();
 });
 if (process.env.NODE_ENV != 'production') kue.app.listen(config.kue.port);
 
-
 // ### create koa ###
 var app = module.exports = koa();
-
+app.use(requestId()); // 为request生成uuid -> this.id(https://github.com/segmentio/koa-request-id)
 app.use(compress()); // Compress
 app.use(logger());
-
+app.use(conditional()); // etag works together with conditional-get
+app.use(etag());
+// 锦上添花
 app.use(function*(next) {
   yield next;
   this.set('X-Powered-By', 'Prometheus');
@@ -41,10 +45,12 @@ app.use(serve(path.resolve(__dirname, 'assets')));
 
 // #### RESTFUL路由：处理业务 ####
 app.use(route.get('/', function*() {
-  this.body = 'hello';
+  this.redirect(config.app.api_v1);
 }));
-app.use(route.get('/api/v1', function*() {
-  this.body = 'hello';
+app.use(route.get(config.app.api_v1, function*() {
+  this.body = {
+    meta: 'TODO meta、url、link ETC.'
+  };
 }));
 require('./lib/router/users')(app, route);
 require('./lib/router/logs')(app, route);
