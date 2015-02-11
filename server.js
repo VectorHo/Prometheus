@@ -1,9 +1,11 @@
 var koa = require('koa');
 var logger = require('koa-logger');
 var serve = require('koa-static');
+var compress = require('koa-compress');
 var parse = require('co-body');
-var path = require('path');
+var route = require('koa-route');
 var kue = require('kue');
+var path = require('path');
 
 // #### 捕捉全局异常 ####
 process.on('uncaughtException', function(err) {
@@ -23,14 +25,32 @@ jobs.watchStuckJobs();
 ['online-nodejs'].forEach(function(each) {
   jobs.process(each, 5, require("./lib/processor/" + each)); // parallel processing 5 jobs
 });
-if(process.env.NODE_ENV != 'production') kue.app.listen(3100);
+if (process.env.NODE_ENV != 'production') kue.app.listen(3100);
 
 
 // ### create koa ###
 var app = module.exports = koa();
 
-app.use(serve(path.resolve(__dirname, 'assets')));
+app.use(compress()); // Compress
 app.use(logger());
+
+app.use(function*(next) {
+  yield next;
+  this.set('X-Powered-By', 'Prometheus');
+  this.set('Server', 'koa');
+  this.set('X-Pretty-Print', true);
+});
+app.use(serve(path.resolve(__dirname, 'assets')));
+
+// #### RESTFUL路由：处理业务 ####
+app.use(route.get('/', function*() {
+  this.body = 'hello';
+}));
+require('./lib/router/users')(app, route);
+require('./lib/router/logs')(app, route);
+require('./lib/router/servers')(app, route);
+require('./lib/router/projects')(app, route);
+require('./lib/router/jobs')(app, route);
 
 
 // ##### custom 404 #####
@@ -40,7 +60,7 @@ app.use(function*(next) {
   this.redirect('/404.html');
 });
 
-// error handler
+// ##### error handler #####
 app.on('error', function(err) {
   if (process.env.NODE_ENV != 'test') {
     console.log('sent error %s to the cloud', err.message);
