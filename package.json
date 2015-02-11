@@ -25,7 +25,8 @@
     "koa-logger": "^1.2.2",
     "koa-route": "^2.4.0",
     "koa-static": "^1.4.9",
-    "kue": "^0.8.11"
+    "kue": "^0.8.11",
+    "mongoose": "^3.8.23"
   },
   "devDependencies": {
     "co": "*",
