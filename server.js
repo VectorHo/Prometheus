@@ -1,5 +1,6 @@
 var koa = require('koa');
 var logger = require('koa-logger');
+var mount = require('koa-mount');
 var requestId = require('koa-request-id');
 var serve = require('koa-static');
 var compress = require('koa-compress');
@@ -58,7 +59,6 @@ require('./lib/router/servers')(app, route);
 require('./lib/router/projects')(app, route);
 require('./lib/router/jobs')(app, route);
 
-
 // ##### custom 404 #####
 app.use(function*(next) {
   yield next;
@@ -73,6 +73,8 @@ app.on('error', function(err) {
     console.trace(err.stack);
   }
 });
+// 挂载app上下文：prometheus
+app.use(mount('/' + config.app.name, app));
 
 if (!module.parent) {
   app.listen(config.app.port);
