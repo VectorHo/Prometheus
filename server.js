@@ -27,7 +27,7 @@ jobs.watchStuckJobs();
 ['online-nodejs'].forEach(function(each) {
   jobs.process(each, 5, require("./lib/processor/" + each)); // parallel processing 5 jobs
 });
-if (app.env != 'production') kue.app.listen(config.kue.port);
+if (process.env.NODE_ENV != 'production') kue.app.listen(config.kue.port);
 
 // ### create koa ###
 var app = module.exports = koa();
@@ -66,6 +66,7 @@ app.use(function*(next) {
   } catch (err) {
     console.error('error handle：\n\t%s', err);
     if (this.path.indexOf('/api') != -1) {
+      err.url = this.protocol.concat('://', this.host, this.originalUrl);
       this.throw(err);
     } else {
       this.redirect('/500.html');
