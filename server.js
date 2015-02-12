@@ -19,7 +19,7 @@ process.on('uncaughtException', function(err) {
 });
 
 // #### 注册任务队列处理机制 #####
-var jobs = kue.createQueue(config.queue);
+var jobs = kue.createQueue(config.kue.queue);
 jobs.watchStuckJobs();
 ['online-nodejs'].forEach(function(each) {
   jobs.process(each, 5, require("./lib/processor/" + each)); // parallel processing 5 jobs
@@ -77,7 +77,7 @@ app.on('error', function(err) {
 app.use(mount('/' + config.app.name, app));
 
 if (!module.parent) {
-  app.listen(config.app.port);
+  app.listen(process.env.PORT || config.app.port);
   console.log('Prometheus Listen on port %s', config.app.port);
   console.log('kue Listen on port %s', config.kue.port);
 }
