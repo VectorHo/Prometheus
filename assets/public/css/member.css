@@ -1,0 +1,25 @@
+.table {
+  width: 100%;
+  max-width: 100%;
+  font-size: 15px;
+  border-collapse: collapse; }
+  .table tr th {
+    text-align: left;
+    font-weight: 400;
+    padding: 10px 8px;
+    background-color: #10AF88;
+    color: #FFF;
+    border-bottom: 4px solid #0C9E7A; }
+  .table tr td {
+    padding: 14px 8px; }
+  .table tr:nth-child(odd) {
+    background-color: #FFF; }
+  .table tr:nth-child(even) {
+    background-color: #F5F5F5; }
+  .table tr:last-child {
+    border-bottom: 4px solid #FFF; }
+
+.table-hover tr:hover {
+  background-color: #C5E8DF; }
+
+/*# sourceMappingURL=member.css.map */
