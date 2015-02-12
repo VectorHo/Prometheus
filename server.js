@@ -79,7 +79,7 @@ app.use(require('./lib/router/users').Authentication);
 app.use(require('./lib/router/logs').log);
 
 // #### RESTFUL路由：处理业务 ####
-app.use(route.get('/', function*() {
+app.use(route.get('/api', function*() {
   this.redirect(config.app.api_v1);
 }));
 app.use(route.get(config.app.api_v1, function*() {
