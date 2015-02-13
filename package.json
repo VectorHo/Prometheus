@@ -33,6 +33,7 @@
     "koa-route": "^2.4.0",
     "koa-session-redis2": "*",
     "koa-static": "^1.4.9",
+    "koa-validate": "^0.2.7",
     "kue": "^0.8.11",
     "mongoose": "^3.8.23",
     "thunkify": "^2.1.2",

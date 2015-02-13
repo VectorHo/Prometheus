@@ -1,6 +1,7 @@
 var koa = require('koa');
 var logger = require('koa-logger');
 var mount = require('koa-mount');
+var validate = require('koa-validate');
 var json = require('koa-json');
 var requestId = require('koa-request-id');
 var csrf = require('koa-csrf');
@@ -38,6 +39,7 @@ app.use(requestId()); // 为request生成uuid -> this.id(https://github.com/segm
 app.use(compress()); // Compress
 app.use(json()); // Default to being disabled (useful in ENV = production), but togglable via the query-string parameter
 app.use(logger());
+app.use(validate()); // validator
 app.use(conditional()); // etag works together with conditional-get
 app.use(etag());
 // 锦上添花
@@ -62,8 +64,9 @@ app.use(session({
 
 // custom 500：捕获下游 throw error
 function errHandle(that, err) {
-  console.log('%s internal server error...', this.status);
-  this.status = 500;
+  console.trace(err.stack); // 有些错误没有
+  console.log('%s internal server error...', that.status);
+  that.status = 500;
   if (that.path.indexOf('/api') != -1) {
     err.url = that.protocol.concat('://', that.host, that.originalUrl);
     that.throw(err); // 会促发app.on('err')事件
@@ -101,8 +104,8 @@ require('./lib/router/jobs')(app, route);
 // ##### custom 404 #####
 app.use(function*(next) {
   yield next;
-  if (404 != this.status) return;
   console.log('%s Not Found...', this.status);
+  if (404 != this.status) return;
   this.status = 404;
   this.session.level = 'yellow';
   if (this.path.indexOf('/api') != -1) {
@@ -112,7 +115,7 @@ app.use(function*(next) {
   }
 });
 
-// ##### error handler #####
+// ##### app error handler #####
 app.on('error', function(err, ctx) {
   if (process.env.NODE_ENV != 'test') { // output to stderr
     // console.log(ctx.toJSON());
