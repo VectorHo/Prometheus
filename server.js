@@ -59,17 +59,23 @@ app.use(session({
     ttl: config.redis.ttl
   }
 }));
-// custom 500：下游统一 throw error
+
+// custom 500：捕获下游 throw error
+function errHandle(that, err) {
+  console.log('%s internal server error...', this.status);
+  this.status = 500;
+  if (that.path.indexOf('/api') != -1) {
+    err.url = that.protocol.concat('://', that.host, that.originalUrl);
+    that.throw(err); // 会促发app.on('err')事件
+  } else {
+    that.redirect('/500.html');
+  }
+}
 app.use(function*(next) {
   try {
     yield next;
   } catch (err) {
-    if (this.path.indexOf('/api') != -1) {
-      err.url = this.protocol.concat('://', this.host, this.originalUrl);
-      this.throw(err); // 会促发app.on('err')事件
-    } else {
-      this.redirect('/500.html');
-    }
+    errHandle(this, err);
   }
 });
 // Authentication 身份验证通过后能在this.session.user
@@ -95,11 +101,13 @@ require('./lib/router/jobs')(app, route);
 // ##### custom 404 #####
 app.use(function*(next) {
   yield next;
-  if (this.body || !this.idempotent) return;
+  if (404 != this.status) return;
+  console.log('%s Not Found...', this.status);
+  this.status = 404;
+  this.session.level = 'yellow';
   if (this.path.indexOf('/api') != -1) {
-    this.throw(404);
+    this.body = {message: 'Page Not Found'};
   } else {
-    console.log('跳转404页面...');
     this.redirect('/404.html');
   }
 });
