@@ -4,7 +4,7 @@ var mount = require('koa-mount');
 var json = require('koa-json');
 var requestId = require('koa-request-id');
 var csrf = require('koa-csrf');
-var session = require('koa-session-redis');
+var session = require('koa-session-redis2');
 var serve = require('koa-static');
 var compress = require('koa-compress');
 var conditional = require('koa-conditional-get');
@@ -64,10 +64,9 @@ app.use(function*(next) {
   try {
     yield next;
   } catch (err) {
-    console.error('error handle：\n\t%s', err);
     if (this.path.indexOf('/api') != -1) {
       err.url = this.protocol.concat('://', this.host, this.originalUrl);
-      this.throw(err);
+      this.throw(err); // 会促发app.on('err')事件
     } else {
       this.redirect('/500.html');
     }
@@ -75,7 +74,7 @@ app.use(function*(next) {
 });
 // Authentication 身份验证通过后能在this.session.user
 app.use(require('./lib/router/users').Authentication);
-// persistence logs
+// persistence logs，放置身份验证后面目的就是只记录登录后的日志
 app.use(require('./lib/router/logs').log);
 
 // #### RESTFUL路由：处理业务 ####
@@ -97,12 +96,10 @@ require('./lib/router/jobs')(app, route);
 app.use(function*(next) {
   yield next;
   if (this.body || !this.idempotent) return;
-  if(this.path.indexOf('/api') != -1) {
-    var err = new Error('Not Found...');
-    err.status = 404;
-    err.url = this.protocol.concat('://', this.host, this.originalUrl);
-    this.throw(404, err);
+  if (this.path.indexOf('/api') != -1) {
+    this.throw(404);
   } else {
+    console.log('跳转404页面...');
     this.redirect('/404.html');
   }
 });
@@ -110,7 +107,8 @@ app.use(function*(next) {
 // ##### error handler #####
 app.on('error', function(err, ctx) {
   if (process.env.NODE_ENV != 'test') { // output to stderr
-    console.error('sent error %s, %s to the cloud\n', err, ctx);
+    // console.log(ctx.toJSON());
+    console.error('sent error [ %s ] to the cloud\n\t', err);
     console.trace(err.stack);
   }
 });
