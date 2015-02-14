@@ -13,6 +13,7 @@ var etag = require('koa-etag');
 var koaBody = require('koa-body');
 var route = require('koa-route');
 var path = require('path');
+var util = require('util');
 var config = require('./lib/config.js'); // 全局配置
 var queue = require('./lib/queue.js'); // 队列
 
@@ -57,12 +58,11 @@ app.use(session({
 
 // custom 500：捕获下游 throw error
 function errHandle(that, err) {
-  console.trace(err.stack); // 有些未知错误没有抛给app
-  console.log('%s internal server error...', that.status);
+  that.app.emit('error', err, that); // 触发通知app接收器
   that.status = 500;
   if (that.path.indexOf('/api') != -1) {
     err.url = that.protocol.concat('://', that.host, that.originalUrl);
-    that.body(err); // 会促发app.on('err')事件
+    that.body = util.inspect(err, { showHidden: true, depth: null });
   } else {
     that.redirect('/500.html');
   }
@@ -112,7 +112,8 @@ app.use(function*(next) {
 app.on('error', function(err, ctx) {
   if (process.env.NODE_ENV != 'test') { // output to stderr
     // console.log(ctx.toJSON());
-    console.error('sent error [ %s ] to the cloud\n\t', err);
+    console.error('\napp error receiver：%s', err.status);
+    console.error(err);
     console.trace(err.stack);
   }
 });
