@@ -37,7 +37,8 @@
     "kue": "^0.8.11",
     "mongoose": "^3.8.23",
     "thunkify": "^2.1.2",
-    "underscore": "^1.7.0"
+    "underscore": "^1.7.0",
+    "koa-body": "^1.0.0"
   },
   "devDependencies": {
     "co": "*",
