@@ -62,7 +62,7 @@ function errHandle(that, err) {
   that.status = 500;
   if (that.path.indexOf('/api') != -1) {
     err.url = that.protocol.concat('://', that.host, that.originalUrl);
-    that.throw(err); // 会促发app.on('err')事件
+    that.body(err); // 会促发app.on('err')事件
   } else {
     that.redirect('/500.html');
   }
