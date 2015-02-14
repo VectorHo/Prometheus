@@ -10,25 +10,17 @@ var serve = require('koa-static');
 var compress = require('koa-compress');
 var conditional = require('koa-conditional-get');
 var etag = require('koa-etag');
-var parse = require('co-body');
+var koaBody = require('koa-body');
 var route = require('koa-route');
-var kue = require('kue');
 var path = require('path');
 var config = require('./lib/config.js'); // 全局配置
+var queue = require('./lib/queue.js'); // 队列
 
 // #### 捕捉全局异常 ####
 process.on('uncaughtException', function(err) {
   console.error("全局异常捕获，保证程序不会终止:\n\t%s", err);
   console.trace(err.stack);
 });
-
-// #### 注册任务队列处理机制 #####
-var jobs = kue.createQueue(config.kue.queue);
-jobs.watchStuckJobs();
-['online-nodejs'].forEach(function(each) {
-  jobs.process(each, 5, require("./lib/processor/" + each)); // parallel processing 5 jobs
-});
-if (process.env.NODE_ENV != 'production') kue.app.listen(config.kue.port);
 
 // ### create koa ###
 var app = module.exports = koa();
@@ -39,6 +31,7 @@ app.use(requestId()); // 为request生成uuid -> this.id(https://github.com/segm
 app.use(compress()); // Compress
 app.use(json()); // Default to being disabled (useful in ENV = production), but togglable via the query-string parameter
 app.use(logger());
+app.use(koaBody()); // this.request.body
 app.use(validate()); // validator
 app.use(conditional()); // etag works together with conditional-get
 app.use(etag());
@@ -64,7 +57,7 @@ app.use(session({
 
 // custom 500：捕获下游 throw error
 function errHandle(that, err) {
-  console.trace(err.stack); // 有些错误没有
+  console.trace(err.stack); // 有些未知错误没有抛给app
   console.log('%s internal server error...', that.status);
   that.status = 500;
   if (that.path.indexOf('/api') != -1) {
@@ -78,7 +71,7 @@ app.use(function*(next) {
   try {
     yield next;
   } catch (err) {
-    errHandle(this, err);
+    errHandle(this, err);// 据说koa这样提取出来更快？
   }
 });
 // Authentication 身份验证通过后能在this.session.user
