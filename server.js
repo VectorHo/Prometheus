@@ -15,13 +15,15 @@ var route = require('koa-route');
 var path = require('path');
 var util = require('util');
 var config = require('./lib/config.js'); // 全局配置
-var queue = require('./lib/queue.js'); // 队列
+var queue = require('./lib/queue.js'); // 任务队列
 
 // #### 捕捉全局异常 ####
-process.on('uncaughtException', function(err) {
-  console.error("全局异常捕获，保证程序不会终止:\n\t%s", err);
-  console.trace(err.stack);
-});
+if (process.env.NODE_ENV != 'production') {
+  process.on('uncaughtException', function(err) {
+    console.error("鲁棒性:\n\t%s", err);
+    console.trace(err.stack);
+  });
+}
 
 // ### create koa ###
 var app = module.exports = koa();
@@ -59,10 +61,13 @@ app.use(session({
 // custom 500：捕获下游 throw error
 function errHandle(that, err) {
   that.app.emit('error', err, that); // 触发通知app接收器
-  that.status = 500;
+  that.status = that.status || 500;
   if (that.path.indexOf('/api') != -1) {
     err.url = that.protocol.concat('://', that.host, that.originalUrl);
-    that.body = util.inspect(err, { showHidden: true, depth: null });
+    that.body = util.inspect(err, {
+      showHidden: true,
+      depth: null
+    });
   } else {
     that.redirect('/500.html');
   }
@@ -71,7 +76,7 @@ app.use(function*(next) {
   try {
     yield next;
   } catch (err) {
-    errHandle(this, err);// 据说koa这样提取出来更快？
+    errHandle(this, err); // 据说koa这样提取出来更快？
   }
 });
 // Authentication 身份验证通过后能在this.session.user
@@ -102,7 +107,9 @@ app.use(function*(next) {
   this.status = 404;
   this.session.level = 'yellow';
   if (this.path.indexOf('/api') != -1) {
-    this.body = {message: 'Page Not Found'};
+    this.body = {
+      message: 'Page Not Found'
+    };
   } else {
     this.redirect('/404.html');
   }
