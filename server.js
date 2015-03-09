@@ -119,7 +119,7 @@ app.use(function*(next) {
 app.on('error', function(err, ctx) {
   if (process.env.NODE_ENV != 'test') { // output to stderr
     // console.log(ctx.toJSON());
-    console.error('\napp error receiver：%s', err.status);
+    console.error('\napp error receiver：');
     console.error(err);
     console.trace(err.stack);
   }
